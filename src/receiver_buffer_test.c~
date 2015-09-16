@@ -1,9 +1,3 @@
-/*Tugas kecil 1 Jaringan Komputer
-pembuat:
-13512501 Muhammad Nizami
-13513039 Ivan Andrianto
-*/
-
 #include "receiver_buffer.h"
 
 #include <stdio.h>

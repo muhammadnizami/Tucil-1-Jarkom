@@ -15,6 +15,8 @@ pembuat:
 #include <limits.h>
 #include <pthread.h>
 
+const int EOF_var = EOF;
+
 void diep(char *s)
 {
 	perror(s);
@@ -97,4 +99,6 @@ int main(int argc, char ** argv){
 		if (sendto(s,&etc, 1,0, (struct sockaddr*) &si_other, slen)==-1)
 		        diep("sendto()");
 	}
+	if (sendto(s,&EOF_var, 1,0, (struct sockaddr*) &si_other, slen)==-1)
+		        diep("sendto()");
 }

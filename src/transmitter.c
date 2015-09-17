@@ -14,6 +14,7 @@ pembuat:
 #include <unistd.h>
 #include <limits.h>
 #include <pthread.h>
+#include <signal.h>
 
 const int EOF_var = EOF;
 
@@ -101,5 +102,5 @@ int main(int argc, char ** argv){
 	}
 	if (sendto(s,&EOF_var, 1,0, (struct sockaddr*) &si_other, slen)==-1)
 		        diep("sendto()");
-	pthread_join(signalReaderThread,NULL);
+	pthread_kill(signalReaderThread,SIGKILL);
 }

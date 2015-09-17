@@ -138,7 +138,8 @@ int main(){
 	int i;
 	for (i=0;i<20;i++){	
 		printf("pop: %c\n",buffer_pop());
-		printf("numel: %d\n",buffer_numElements());
+	printf("numel: %d\n",buffer_numElements());
+	printf("empty: %x\n",buffer_isEmpty());
 		printf("empty: %x\n",buffer_isEmpty());
 		printf("full: %x\n",buffer_isFull());
 		buffer_print();

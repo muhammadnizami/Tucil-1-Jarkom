@@ -53,14 +53,14 @@ static Byte *rcvchar(int sockfd, QTYPE *queue)
 */
 static Byte *q_get(QTYPE *queue, Byte *data)
 {
-	Byte *current;
-	/* Nothing in the queue */
-	if (!queue->count) return (NULL);
-	/*
-	Insert code here.
-	Retrieve data from buffer, save it to "current" and "data"
-	If the number of characters in the receive buffer is below certain
-	level, then send XON.
-	Increment front index and check for wraparound.
-	*/
+Byte *current;
+/* Nothing in the queue */
+if (!queue->count) return (NULL);
+/*
+Insert code here.
+Retrieve data from buffer, save it to "current" and "data"
+If the number of characters in the receive buffer is below certain
+level, then send XON.
+Increment front index and check for wraparound.
+*/
 }

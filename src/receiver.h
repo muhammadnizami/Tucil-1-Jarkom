@@ -9,7 +9,7 @@
 #include <sys/socket.h>
 #include <netdb.h>
 
-#define DELAY 10
+#define DELAY 100
 #define RXQSIZE 8
 #define BUF_SIZE 500
 #define MIN_UPPERLIMIT 4
@@ -18,12 +18,11 @@
 Byte rxbuf[RXQSIZE];
 QTYPE rcvq = { 0, 0, 0, RXQSIZE, rxbuf };
 QTYPE *rxq = &rcvq;
-Byte sent_xonxoff = XON;
-bool send_xon = false,
-send_xoff = false;
+Byte sent_xonxoff;
+bool send_xon, send_xoff;
 /* Socket */
 int sockfd; // listen on sock_fd
-
+/* Functions declaration */
 static Byte *rcvchar(int sockfd, QTYPE *queue);
 static Byte *q_get(QTYPE *, Byte *);
 #endif

@@ -3,28 +3,35 @@
 Nama: Ivan Ausiri
 NIM: 13513039
 */
+#include <iostream>
 #include <unistd.h>
 #include <pthread.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include "dcomm.h"
 #include "receiver.h"
-struct sockaddr_in dest;
-socklen_t destLength = sizeof(dest);
+using namespace std;
+
+struct sockaddr_in addr;
+ struct sockaddr_in  *sockaddr_ipv4;
+socklen_t addrLength = sizeof(addr);
 int co = 0; //count total byte which want to be read
 int con = 0;
 void *consume_byte(void *);
 Byte c;
+bool hasReceived = false;
+char *port;
+
 int main(int argc, char *argv[]){
 	
 	
 	/*Insert code here to bind socket to the port number given in argv[1].*/
-
 	if (argc != 2) {
-		printf("Usage" "<Server Port/Service>\n");
+		printf("usage: ./receiver <PORT NUMBER>\n");
 		return 0;
 	}
-
-	/* Mengambil port dari argumen */
-	char *port = argv[1];
+	/* Mengambil port dari parameter */
+	port = argv[1];
 
 	/* Membuat struktur address server */
 	struct addrinfo hints; // Hints for address
@@ -39,22 +46,21 @@ int main(int argc, char *argv[]){
 	
 	struct addrinfo *serverAddresses; // List of server addresses
 	
-	int ret = getaddrinfo(NULL, port, &hints, &serverAddresses);//getaddrinfo(service, hints, res)
+	int ret = getaddrinfo(NULL, port, &hints, &serverAddresses);
 	//returns one or more addrinfo structures pada res
 	if (ret != 0) {
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(ret));
 		printf("getaddrinfo failed");
 		return 0;
 	}
-
-	// create socket
+	
+	/* create socket */
 	sockfd = socket(serverAddresses->ai_family, serverAddresses->ai_socktype, serverAddresses->ai_protocol);
 	if (sockfd < 0) {
 		printf("socket failed");
 		return 0;
 	}
-
-	// Menge-bind ke local address
+	/* Menge-bind ke local address */
 	int bindResult = bind(sockfd, serverAddresses->ai_addr, serverAddresses->ai_addrlen);
 	if(bindResult < 0){
 		printf("bind failed");
@@ -63,7 +69,7 @@ int main(int argc, char *argv[]){
 
 	/* Daftar free address */
 	freeaddrinfo(serverAddresses);
-
+	
 	/* Initialize XON/XOFF flags */
 	sent_xonxoff = XON;
 	send_xon = false;
@@ -71,6 +77,7 @@ int main(int argc, char *argv[]){
 
 	/* Create child process */
 	pthread_t t;
+
 	/*** IF CHILD PROCESS ***/
 	pthread_create(&t, NULL, consume_byte, NULL);
 	
@@ -101,9 +108,9 @@ void *consume_byte(void *){
 						printf("End of File accepted.\n");
 						exit(0);
 						break;
-					case CR: printf("Consuming byte_ %i: CR\n",++con); break;
-					case LF: printf("Consuming byte_ %i: LF\n",++con); break;
-					default: printf("Consuming byte_ %i: '%c'\n",++con,rxq->data[rxq->front-1]); break;
+					case CR: printf("Mengkonsumsi byte ke-%i: CR\n",++con); break;
+					case LF: printf("Mengkonsumsi byte ke-%i: LF\n",++con); break;
+					default: printf("Mengkonsumsi byte ke-%i: '%c'\n",++con,rxq->data[rxq->front-1]); break;
 				}
 			} else {
 				switch(rxq->data[RXQSIZE-1]){
@@ -111,9 +118,9 @@ void *consume_byte(void *){
 						printf("End of File accepted.\n");
 						exit(0);
 						break;
-					case CR: printf("Consuming byte_ %i: CR\n",++con); break;
-					case LF: printf("Consuming byte_ %i: LF\n",++con); break;
-					default: printf("Consuming byte_ %i: '%c'\n",++con,rxq->data[RXQSIZE-1]); break;
+					case CR: printf("Mengkonsumsi byte ke-%i: CR\n",++con); break;
+					case LF: printf("Mengkonsumsi byte ke-%i: LF\n",++con); break;
+					default: printf("Mengkonsumsi byte ke-%i: '%c'\n",++con,rxq->data[RXQSIZE-1]); break;
 				}
 			}
 		}
@@ -136,11 +143,18 @@ static Byte *rcvchar(int sockfd, QTYPE *queue){
 	if (!send_xoff) {
 		//read from socket & push it to queue
 		ssize_t receivedBytes = recvfrom(sockfd, byte, sizeof(byte), 0,
-		(struct sockaddr *) &dest, &destLength);
+		(struct sockaddr *) &addr, &addrLength);
+		
 		if (receivedBytes < 0) {
 			//if error
 			printf("recvfrom() failed\n");
 		} else {
+			/* print IP address for the first time */
+			if(!hasReceived){
+				char *some_addr = inet_ntoa(addr.sin_addr);
+				printf("Binding pada %s:%d\n", some_addr,atoi(port));
+				hasReceived = true;
+			}
 			//fill the circular
 			queue->data[queue->rear] = byte[0];
 			putloc=queue->rear;
@@ -152,22 +166,27 @@ static Byte *rcvchar(int sockfd, QTYPE *queue){
 			}
 			co++;
 		}
-		if (byte[0] != Endfile && byte[0] != CR && byte[0] != LF) {
-			printf("Received byte %i: %c\n",co,byte[0]);
+
+		switch(byte[0]){
+			case LF: printf("Menerima byte ke-%i: LF\n",co); break;
+			case CR: printf("Menerima byte ke-%i: CR\n",co); break;
+			case Endfile: break;
+			default: printf("Menerima byte ke-%i: %c\n",co,byte[0]); break;
 		}
-		//Jika ukuran rcv_buffer size melebihi minimum upperlimit
+
+		/* Jika ukuran rcv_buffer size melebihi minimum upperlimit */
 		if (queue->count > MIN_UPPERLIMIT && sent_xonxoff == XON) {
-			/* mengeset xon dan xoff*/
+			/* mengeset xon dan xoff */
 			sent_xonxoff = XOFF;
 			send_xon = false;
 			send_xoff = true;
 			
-			char test[2];
-			test[0] = XOFF;
-			//send XOFF to transmitter
+			char ch[2];
+			ch[0] = XOFF;
+			/* send XOFF to transmitter */
 			printf("Send XOFF\n");
-			ssize_t sentBytes = sendto(sockfd, test, sizeof(test), 4,
-			(struct sockaddr *) &dest, sizeof(dest));
+			ssize_t sentBytes = sendto(sockfd, ch, sizeof(ch), 0,
+			(struct sockaddr *) &addr, sizeof(addr));
 			if (sentBytes < 0){
 				printf("sendto() failed)");
 			}			
@@ -216,10 +235,10 @@ static Byte *q_get(QTYPE *queue, Byte *data){
 		send_xoff = false;
 
 		char SendBuf[1024];
-		SendBuf[0] = XON;//???
+		SendBuf[0] = XON;
 		int bufLen = 1024;
 
-		ssize_t sentBytes = sendto(sockfd, SendBuf, bufLen, 0, (struct sockaddr *) &dest, sizeof(dest));
+		ssize_t sentBytes = sendto(sockfd, SendBuf, bufLen, 0, (struct sockaddr *) &addr, sizeof(addr));
 		if (sentBytes < 0){
 			printf("sendto() failed\n");
 		}
